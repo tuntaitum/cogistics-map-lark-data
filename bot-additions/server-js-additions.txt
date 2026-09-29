@@ -1,0 +1,25 @@
+1) Add this import near the top, next to your other lark imports:
+
+import { getMapData } from './lark/map.js';
+
+
+2) Add this route — I'd put it right next to app.get('/ping', ...):
+
+app.get('/pins', async (req, res) => {
+  if (req.headers.authorization !== `Bearer ${process.env.MAP_API_KEY}`) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+
+  try {
+    const data = await getMapData();
+    res.json(data);
+  } catch (error) {
+    console.error('Failed to fetch map data:', error.message);
+    res.status(502).json({ error: error.message });
+  }
+});
+
+
+That's the whole change to this repo. No changes to bot.js, no new OAuth
+scopes, no changes to how the bot handles Lark chat events — this is just
+one more read-only HTTP route sitting next to /ping and /webhook.

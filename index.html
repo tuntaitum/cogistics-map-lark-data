@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cogistics Cold Storage Interactive Map</title>
+<meta name="description" content="Interactive map of Cogistics cold storage locations and convenience store distribution centers of interest in Thailand.">
+<meta property="og:title" content="Cogistics Cold Storage Interactive Map">
+<meta property="og:description" content="Interactive map of Cogistics cold storage locations and convenience store distribution centers of interest in Thailand.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://cogistics-interactive-map.vercel.app/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Cogistics Cold Storage Interactive Map">
+<meta name="twitter:description" content="Interactive map of Cogistics cold storage locations and convenience store distribution centers of interest in Thailand.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%8D</text></svg>">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);background:transparent}
+#map-wrap{position:relative;width:100%;background:var(--color-background-secondary,#f7f7f8);border-radius:var(--border-radius-lg,10px);overflow:hidden;border:0.5px solid var(--color-border-tertiary,#e2e2e2)}
+#map{width:100%;height:calc(100vh - 90px)}
+#controls{padding:12px 14px;border-top:0.5px solid var(--color-border-tertiary,#e2e2e2);background:var(--color-background-primary,#fff)}
+.ctrl-row{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.layer-btn{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--border-radius-md,6px);border:0.5px solid var(--color-border-secondary,#ddd);background:var(--color-background-primary,#fff);cursor:pointer;font-size:12px;color:var(--color-text-secondary,#444);transition:all .15s}
+.layer-btn.active{border-color:transparent;color:#fff}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 14px;border-top:0.5px solid var(--color-border-tertiary,#e2e2e2)}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary,#555)}
+.leaflet-popup-close-button{display:none !important}
+.small-label{background:rgba(255,255,255,0.85);border:none;box-shadow:none;padding:1px 4px;font-size:9px;line-height:1.2;color:#333;font-weight:500;white-space:nowrap}
+.small-label::before{display:none}
+#status-banner{display:none;padding:8px 14px;font-size:12px;border-top:0.5px solid var(--color-border-tertiary,#e2e2e2)}
+</style>
+</head>
+<body>
+<h2 style="text-align:center;padding:12px;font-size:16px;">Interactive map of Cogistics Cold Storage locations & DC's of Interest</h2>
+<div id="map-wrap">
+  <div id="map"></div>
+  <div id="controls"><div class="ctrl-row" id="layer-controls"></div></div>
+  <div class="legend" id="legend"></div>
+  <div id="status-banner"></div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(async function () {
+  const statusEl = document.getElementById('status-banner');
+  function showStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.display = 'block';
+    statusEl.style.background = isError ? '#f8d7da' : '#fff3cd';
+    statusEl.style.color = isError ? '#721c24' : '#856404';
+  }
+
+  async function loadPinData() {
+    const res = await fetch('/api/pins', { credentials: 'same-origin' });
+    if (res.status === 401) {
+      window.location.href = '/login.html';
+      return null;
+    }
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Failed to load pins (HTTP ${res.status})`);
+    }
+    return res.json();
+  }
+
+  // Turn the flat { groups, pins } response from /api/pins into the same
+  // per-layer shape the map rendering code below expects.
+  function buildLayers(data) {
+    const byId = {};
+    (data.groups || []).forEach((g) => {
+      byId[g.id] = { ...g, points: [] };
+    });
+    (data.pins || []).forEach((p) => {
+      if (!byId[p.group]) {
+        // A pin references a group that doesn't exist in the Groups table.
+        // Surface it rather than silently dropping the pin.
+        byId[p.group] = {
+          id: p.group || 'ungrouped',
+          label: p.group || 'Ungrouped',
+          color: '#999999',
+          active: true,
+          order: 999,
+          popupStyle: 'Label Only',
+          points: [],
+        };
+      }
+      byId[p.group].points.push(p);
+    });
+    return Object.values(byId).sort((a, b) => a.order - b.order);
+  }
+
+  function makeIcon(color) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
+      <path d="M14 2C7.4 2 2 7.4 2 14c0 9 12 20 12 20s12-11 12-20C26 7.4 20.6 2 14 2z" fill="${color}" stroke="#fff" stroke-width="1.5"/>
+      <circle cx="14" cy="14" r="5" fill="#fff" opacity="0.9"/>
+      <circle cx="14" cy="14" r="2.5" fill="${color}"/>
+    </svg>`;
+    return L.divIcon({ html: svg, className: '', iconSize: [28, 36], iconAnchor: [14, 36], popupAnchor: [0, -36] });
+  }
+
+  let data;
+  try {
+    data = await loadPinData();
+    if (!data) return; // redirected to login
+  } catch (err) {
+    showStatus('Could not load map data: ' + err.message, true);
+    return;
+  }
+
+  const LAYERS = buildLayers(data);
+  if (LAYERS.length === 0) {
+    showStatus('No pins found yet. Add rows to the Pins table in Lark to see them here.', false);
+  }
+
+  const map = L.map('map', { zoomControl: true }).setView([13.67, 100.7], 8.5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 15,
+  }).addTo(map);
+
+  const layerGroups = {};
+  const layerMarkers = {};
+
+  LAYERS.forEach((layer) => {
+    const group = L.layerGroup();
+    const markers = [];
+    const isPopupLayer = layer.popupStyle === 'Full Popup';
+
+    layer.points.forEach((pt) => {
+      const marker = L.marker([pt.lat, pt.lng], { icon: makeIcon(layer.color) });
+
+      if (isPopupLayer) {
+        marker.bindPopup(
+          `<div style="min-width:200px;font-family:sans-serif">
+            <div style="font-weight:500;font-size:12px;margin-bottom:4px;color:#111">${escapeHtml(pt.name)}</div>
+            <div style="font-size:10px;color:#555;line-height:1.5">${escapeHtml(pt.note || '')}</div>
+          </div>`,
+          { maxWidth: 260, closeButton: false, autoClose: false, closeOnClick: false, closeOnEscapeKey: false }
+        );
+      } else {
+        marker.bindTooltip(pt.name, { permanent: true, direction: 'right', offset: [6, 0], className: 'small-label' });
+      }
+
+      marker.on('click', () => {
+        showStatus(`${pt.name} · ${layer.label}`, false);
+      });
+
+      group.addLayer(marker);
+      markers.push(marker);
+    });
+
+    layerGroups[layer.id] = group;
+    layerMarkers[layer.id] = markers;
+    if (layer.active) group.addTo(map);
+  });
+
+  function openAllPopupsForLayer(layer) {
+    if (layer.popupStyle !== 'Full Popup') return;
+    layerMarkers[layer.id].forEach((m) => m.openPopup());
+  }
+  LAYERS.forEach((layer) => {
+    if (layer.active) openAllPopupsForLayer(layer);
+  });
+
+  const ctrlContainer = document.getElementById('layer-controls');
+  LAYERS.forEach((layer) => {
+    const btn = document.createElement('button');
+    btn.className = 'layer-btn' + (layer.active ? ' active' : '');
+    btn.style.background = layer.active ? layer.color : '';
+    btn.innerHTML = `<span class="dot" style="background:${layer.color}"></span>${escapeHtml(layer.label)} <span style="opacity:0.7;font-size:11px">(${layer.points.length})</span>`;
+    btn.addEventListener('click', () => {
+      layer.active = !layer.active;
+      if (layer.active) {
+        layerGroups[layer.id].addTo(map);
+        btn.classList.add('active');
+        btn.style.background = layer.color;
+        setTimeout(() => openAllPopupsForLayer(layer), 0);
+      } else {
+        map.removeLayer(layerGroups[layer.id]);
+        btn.classList.remove('active');
+        btn.style.background = '';
+      }
+    });
+    ctrlContainer.appendChild(btn);
+  });
+
+  const legendContainer = document.getElementById('legend');
+  LAYERS.forEach((layer) => {
+    const item = document.createElement('div');
+    item.className = 'leg-item';
+    item.innerHTML = `<span class="dot" style="background:${layer.color}"></span>${escapeHtml(layer.label)}`;
+    legendContainer.appendChild(item);
+  });
+
+  function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+})();
+</script>
+</body>
+</html>
