@@ -28,11 +28,12 @@ body{font-family:var(--font-sans,sans-serif);background:transparent}
 .leaflet-popup-close-button{display:none !important}
 .small-label{background:rgba(255,255,255,0.85);border:none;box-shadow:none;padding:1px 4px;font-size:9px;line-height:1.2;color:#333;font-weight:500;white-space:nowrap}
 .small-label::before{display:none}
+h2.map-title{position:sticky;top:0;z-index:20;text-align:center;padding:12px;font-size:16px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
 #status-banner{display:none;padding:8px 14px;font-size:12px;border-top:0.5px solid var(--color-border-tertiary,#e2e2e2)}
 </style>
 </head>
 <body>
-<h2 style="text-align:center;padding:12px;font-size:16px;">Interactive map of Cogistics Cold Storage locations & DC's of Interest</h2>
+<h2 class="map-title">Interactive map of Cogistics Cold Storage locations & DC's of Interest</h2>
 <div id="map-wrap">
   <div id="map"></div>
   <div id="controls"><div class="ctrl-row" id="layer-controls"></div></div>
