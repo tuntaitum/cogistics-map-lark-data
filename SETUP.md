@@ -25,10 +25,11 @@ One row per pin group (this replaces the hardcoded `LAYERS` array).
 | **Color** | Text | Hex code, e.g. `#ff0000` |
 | **Active By Default** | Checkbox | Whether this layer is shown when the map first loads |
 | **Popup Style** | Single select, options: `Full Popup`, `Label Only` | `Full Popup` = always-open detail popup (use for your own affiliated locations); `Label Only` = a small name tag next to the pin (use for everything else) |
+| **Show On Map** | Single select, options: `Yes`, `No` | Blank or `Yes` = the whole group (and all its pins) is available on the map. `No` = hides the group and its pins entirely. This is deliberately a single select, not a checkbox — a checkbox can't tell "explicitly turned off" apart from "never touched," which makes "leave it unchecked to hide" unreliable. Single select has a real blank/Yes/No distinction. |
 
 **To add a brand-new group later:** add a row here, then create the matching option once (the shared option list means it's immediately available to pick in the Pins table too).
 
-**Ordering:** the map's toggle buttons follow the row order of this table's default view (drag rows in Lark to reorder). Keep that view unsorted/unfiltered, since either would override your manual order.
+**Ordering:** the map's toggle buttons follow the row order of a specific Lark **view**, not just "the table." Open the Groups table's grid view in Lark, and grab the view ID from the URL (the part after `view=`, e.g. `vewXXXXXXXX`) — set that as `MAP_GROUPS_VIEW_ID` on Railway. Without this, dragging rows to reorder them won't be reflected, since the API's default record order has no defined relationship to a view's manual sort. Keep that view unsorted/unfiltered so dragging rows is the only thing determining order.
 
 ### Table: `Pins`
 
@@ -39,11 +40,10 @@ One row per pin group (this replaces the hardcoded `LAYERS` array).
 | **Longitude** | Number | |
 | **Note** | Text | Only shown for `Full Popup` groups |
 | **Group** | Single select, options shared/referenced from the Groups table's `Group ID` field | Picking from this dropdown always matches a real group — renaming a group in Groups updates every pin that references it |
-| **Show On Map** | Checkbox | Leave unchecked to hide a pin without deleting it |
 
 Feel free to add more columns to this table for your own use (tracking, internal notes, whatever) — the map only reads the fields listed above by exact name, so anything else you add is simply ignored.
 
-**To add/edit/delete a pin:** add, edit, or delete a row here. Refreshing the map (or waiting up to 15 seconds — see caching note below) picks up the change.
+**To add/edit/delete a pin:** add, edit, or delete a row here. Refreshing the map (or waiting up to 15 seconds — see caching note below) picks up the change. **To hide a whole category of pins, use the `Show On Map` field on the Groups table** — there's no longer a per-pin visibility toggle; it's one switch per group.
 
 **On the Google Maps autocomplete idea:** since edits now happen straight in the Lark sheet, there's no custom "add pin" form in the app to attach an autocomplete box to. The simplest way to get coordinates while filling in the sheet is to right-click a spot on [Google Maps](https://maps.google.com) or [OpenStreetMap](https://www.openstreetmap.org) and copy the lat/lng it shows, then paste into the two columns. If this becomes a real point of friction, a small standalone "look up an address" helper page (using free OpenStreetMap search, no billing account needed) is a quick follow-up addition — just say the word.
 
@@ -82,6 +82,7 @@ app.get('/pins', async (req, res) => {
 |---|---|
 | `MAP_BASE_APP_TOKEN` | App Token of the new pins Base |
 | `MAP_GROUPS_TABLE_ID` | Table ID of the Groups tab |
+| `MAP_GROUPS_VIEW_ID` | View ID of the Groups table's grid view (from its URL, the `view=` part) — needed for manual row-drag order to actually be reflected |
 | `MAP_PINS_TABLE_ID` | Table ID of the Pins tab |
 | `MAP_API_KEY` | a long random string — generate one with `openssl rand -base64 32` — the map project needs the same value |
 
