@@ -23,8 +23,18 @@ export default async function handler(request) {
   }
 
   try {
-    const res = await fetch(`${botBaseUrl.replace(/\/$/, '')}/pins`, {
-      headers: { authorization: `Bearer ${mapApiKey}` },
+    let target;
+    try {
+      target = new URL('/pins', botBaseUrl.trim());
+    } catch {
+      return json(
+        { error: `BOT_BASE_URL is not a valid URL: "${botBaseUrl}". It should look like https://your-bot.up.railway.app (must include the https:// scheme, no stray spaces).` },
+        500
+      );
+    }
+
+    const res = await fetch(target, {
+      headers: { authorization: `Bearer ${mapApiKey.trim()}` },
     });
 
     if (!res.ok) {
