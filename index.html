@@ -417,6 +417,7 @@ const BANGKOK_POPULATION_DATA = [
       subdomains: 'abcd',
       crossOrigin: true,
       maxZoom: 19,
+      detectRetina: true, // fetch sharp @2x tile images on high-DPI exports, not just upscale standard ones
     }).addTo(map);
 
     try {
@@ -433,7 +434,17 @@ const BANGKOK_POPULATION_DATA = [
         }, 2500);
       });
 
-      const dataUrl = await domtoimage.toPng(document.getElementById('map'), { bgcolor: '#ffffff' });
+      // pixelRatio renders at a higher internal resolution than the map's
+      // on-screen CSS pixel size — default is 1 (soft/blurry when placed
+      // into a deck or zoomed in). devicePixelRatio matches the screen's
+      // own sharpness (2 on most modern laptops/Retina, sometimes 3 on
+      // phones); floor it at 2 and cap at 3 so low-DPI screens still get a
+      // crisp export without the file getting unreasonably large.
+      const pixelRatio = Math.min(3, Math.max(2, window.devicePixelRatio || 1));
+      const dataUrl = await domtoimage.toPng(document.getElementById('map'), {
+        bgcolor: '#ffffff',
+        pixelRatio,
+      });
       const link = document.createElement('a');
       link.download = `cogistics-map-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = dataUrl;
