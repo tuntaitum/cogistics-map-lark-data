@@ -40,15 +40,6 @@ body{font-family:var(--font-sans,sans-serif);background:transparent}
 .top5-name{font-size:11px;color:#333;display:flex;flex-direction:column;line-height:1.3}
 .top5-name-en{font-size:9px;color:#999}
 .top5-pop{font-size:11px;font-weight:600;color:#5c1a80;white-space:nowrap;margin-left:8px}
-#map-toolbar{position:absolute;top:10px;right:10px;z-index:500;display:flex;gap:6px}
-.map-tool-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:var(--border-radius-md,6px);border:0.5px solid var(--color-border-secondary,#ccc);background:rgba(255,255,255,0.95);cursor:pointer;font-size:11px;color:#333;box-shadow:0 1px 4px rgba(0,0,0,0.12);transition:all .12s}
-.map-tool-btn:hover{background:#fff}
-.map-tool-btn.active{border-color:#5c1a80;color:#5c1a80;background:#f6ecf9}
-.map-tool-btn:disabled{opacity:0.6;cursor:default}
-body.presentation-mode h2.map-title,
-body.presentation-mode #controls,
-body.presentation-mode .legend{display:none}
-body.presentation-mode #map{height:100vh}
 h2.map-title{position:sticky;top:0;z-index:20;text-align:center;padding:12px;font-size:16px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
 #status-banner{display:none;padding:8px 14px;font-size:12px;border-top:0.5px solid var(--color-border-tertiary,#e2e2e2)}
 </style>
@@ -57,10 +48,6 @@ h2.map-title{position:sticky;top:0;z-index:20;text-align:center;padding:12px;fon
 <h2 class="map-title">Interactive map of Cogistics Cold Storage locations & DC's of Interest</h2>
 <div id="map-wrap">
   <div id="map"></div>
-  <div id="map-toolbar">
-    <button class="map-tool-btn" id="export-image-btn" title="Save the current map view as a PNG image">📷 Export Image</button>
-    <button class="map-tool-btn" id="presentation-mode-btn" title="Hide controls for a clean, full-screen view while presenting">🖥️ Presentation Mode</button>
-  </div>
   <div id="controls">
     <div class="ctrl-row" id="layer-controls"></div>
     <div class="ctrl-row overlay-row" id="overlay-controls"></div>
@@ -72,7 +59,6 @@ h2.map-title{position:sticky;top:0;z-index:20;text-align:center;padding:12px;fon
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-<script src="https://unpkg.com/dom-to-image-more@3.11.0/dist/dom-to-image-more.min.js"></script>
 <script>
 // Population by district (khet), Bangkok Metropolitan Administration
 // registered-population figures, พ.ศ. 2567 (2024 CE) — provided directly
@@ -208,7 +194,7 @@ const BANGKOK_POPULATION_DATA = [
 
   const map = L.map('map', { zoomControl: true }).setView([13.67, 100.7], 8.5);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Population data: BMA registered population by district (via Wikipedia)',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · Population data: BMA registered population by district 2567',
     maxZoom: 15,
   }).addTo(map);
 
@@ -385,71 +371,6 @@ const BANGKOK_POPULATION_DATA = [
   popLegendItem.className = 'leg-item';
   popLegendItem.innerHTML = `<span class="legend-swatch-gradient"></span>Population density (low → high)`;
   legendContainer.appendChild(popLegendItem);
-
-  // --- Presentation mode: hide the toggle buttons/legend/title for a clean
-  // full-bleed view while screen-sharing. Set up your layers first, then
-  // switch this on — the layer buttons are hidden along with everything else.
-  const presentationBtn = document.getElementById('presentation-mode-btn');
-  presentationBtn.addEventListener('click', () => {
-    const isOn = document.body.classList.toggle('presentation-mode');
-    presentationBtn.classList.toggle('active', isOn);
-    presentationBtn.innerHTML = isOn ? '🖥️ Exit Presentation' : '🖥️ Presentation Mode';
-    // Leaflet needs to recompute its container size after the CSS change;
-    // give the layout a moment to settle first.
-    setTimeout(() => map.invalidateSize(), 100);
-  });
-
-  // --- Export current view as a PNG.
-  // OSM's standard tile servers don't send the CORS headers a browser needs
-  // to read tile pixels into a canvas, so a direct screenshot would export a
-  // blank map background. Workaround: swap in a CORS-friendly basemap
-  // (CARTO Positron, explicitly served with permissive CORS headers) only
-  // for the moment of export, capture, then remove it — the exported image's
-  // basemap style will look slightly cleaner/lighter than the on-screen OSM
-  // tiles, as a side effect of this workaround.
-  const exportBtn = document.getElementById('export-image-btn');
-  exportBtn.addEventListener('click', async () => {
-    exportBtn.disabled = true;
-    const originalLabel = exportBtn.innerHTML;
-    exportBtn.innerHTML = '📷 Exporting…';
-
-    const exportTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
-      crossOrigin: true,
-      maxZoom: 19,
-    }).addTo(map);
-
-    try {
-      await new Promise((resolve) => {
-        let settled = false;
-        exportTiles.once('load', () => {
-          settled = true;
-          resolve();
-        });
-        // Fallback in case the 'load' event doesn't fire cleanly (seen on
-        // some browsers/zoom levels) — proceed anyway after a short wait.
-        setTimeout(() => {
-          if (!settled) resolve();
-        }, 2500);
-      });
-
-      const dataUrl = await domtoimage.toPng(document.getElementById('map'), { bgcolor: '#ffffff' });
-      const link = document.createElement('a');
-      link.download = `cogistics-map-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Export failed:', err);
-      showStatus(
-        'Image export failed (' + err.message + '). Try again, or use your OS screenshot tool as a fallback.',
-        true
-      );
-    } finally {
-      map.removeLayer(exportTiles);
-      exportBtn.disabled = false;
-      exportBtn.innerHTML = originalLabel;
-    }
-  });
 
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
