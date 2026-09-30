@@ -117,3 +117,11 @@ Two independent locks, doing two different jobs: the session cookie is "is this 
 - This stops **casual** inspection (view-source, no more hardcoded coordinates) and gates the whole site behind a password. It does **not** stop someone who's logged in from opening the Network tab and reading the `/api/pins` response — the browser has to receive the coordinates to draw the pins, and there's no way around that for any web map. Treat the password the same way you'd treat any shared internal-tool password.
 - `/api/pins` responses are cached for 15 seconds per browser to avoid hammering your bot on every refresh — so an edit in the sheet shows up within about 15 seconds of a refresh, not instantly.
 - Since the Group ID and Group options are shared/synced, this shouldn't come up in normal use — but the map's code still has a defensive fallback: if a pin ever ends up with a group value that doesn't match any row in the Groups table (e.g. a group option gets deleted while pins still reference it), those pins show up in a visible "Ungrouped" bucket rather than silently disappearing.
+
+## Population density overlay
+
+A toggleable "🏙️ Population Density" button (separate from the pin groups, in its own row) shows a translucent heat overlay of Bangkok's 50 districts. It's off by default — click it on for client presentations, click off for normal use.
+
+**Data source and honest limits:** this is baked into `index.html` as a static `BANGKOK_POPULATION_DATA` array — real registered-population figures and centroids for all 50 districts, compiled from Wikipedia's "Districts of Bangkok" page (itself sourced from BMA civil registration data, appears to be ~2020 vintage). It is **not** a true density-per-km² map — I didn't have reliable area figures for all 50 districts to compute that, only population counts. So this shows relative concentration of registered residents by district, not an exact people-per-km² figure. Good enough to show clients roughly where residential population clusters; not something to quote an exact number from.
+
+**Updating the numbers:** if you get more current or precise figures (e.g. directly from BMA), just replace the values in the `BANGKOK_POPULATION_DATA` array in `index.html` — it's a plain list of `{ name, population, lat, lng }`, no other code changes needed.
