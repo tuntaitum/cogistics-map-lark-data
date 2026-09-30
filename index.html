@@ -53,64 +53,64 @@ h2.map-title{position:sticky;top:0;z-index:20;text-align:center;padding:12px;fon
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
 // Population by district (khet), Bangkok Metropolitan Administration
-// registered-population figures as compiled on Wikipedia's "Districts of
-// Bangkok" page (sourced from BMA civil registration data, ~2020 vintage).
+// registered-population figures, พ.ศ. 2567 (2024 CE) — provided directly
+// by the user from BMA's district-level statistics. Centroids are from
+// Wikipedia's "Districts of Bangkok" compilation (unchanged by this update).
 // This is population count, not population *density* per km² — precise
 // area figures for all 50 districts weren't available to compute true
 // density, so this shows relative concentration of residents by district
-// rather than a density-per-km² claim. Swap in updated BMA figures here
-// if you get them later.
+// rather than a density-per-km² claim.
 const BANGKOK_POPULATION_DATA = [
-  { name: 'Bang Bon', population: 105161, lat: 13.6592, lng: 100.3991 },
-  { name: 'Bang Kapi', population: 148465, lat: 13.765833, lng: 100.647778 },
-  { name: 'Bang Khae', population: 191781, lat: 13.696111, lng: 100.409444 },
-  { name: 'Bang Khen', population: 189539, lat: 13.873889, lng: 100.596389 },
-  { name: 'Bang Kho Laem', population: 94956, lat: 13.693333, lng: 100.5025 },
-  { name: 'Bang Khun Thian', population: 165491, lat: 13.660833, lng: 100.435833 },
-  { name: 'Bang Na', population: 95912, lat: 13.680081, lng: 100.5918 },
-  { name: 'Bang Phlat', population: 99273, lat: 13.793889, lng: 100.505 },
-  { name: 'Bang Rak', population: 45875, lat: 13.730833, lng: 100.524167 },
-  { name: 'Bang Sue', population: 132234, lat: 13.809722, lng: 100.537222 },
-  { name: 'Bangkok Noi', population: 117793, lat: 13.770867, lng: 100.467933 },
-  { name: 'Bangkok Yai', population: 72321, lat: 13.722778, lng: 100.476389 },
-  { name: 'Bueng Kum', population: 145830, lat: 13.785278, lng: 100.669167 },
-  { name: 'Chatuchak', population: 160906, lat: 13.828611, lng: 100.559722 },
-  { name: 'Chom Thong', population: 158005, lat: 13.677222, lng: 100.484722 },
-  { name: 'Din Daeng', population: 130220, lat: 13.769722, lng: 100.552778 },
-  { name: 'Don Mueang', population: 166261, lat: 13.913611, lng: 100.589722 },
-  { name: 'Dusit', population: 107655, lat: 13.776944, lng: 100.520556 },
-  { name: 'Huai Khwang', population: 78175, lat: 13.776667, lng: 100.579444 },
-  { name: 'Khan Na Yao', population: 88678, lat: 13.8271, lng: 100.6743 },
-  { name: 'Khlong Sam Wa', population: 169489, lat: 13.859722, lng: 100.704167 },
-  { name: 'Khlong San', population: 76446, lat: 13.730278, lng: 100.509722 },
-  { name: 'Khlong Toei', population: 109041, lat: 13.708056, lng: 100.583889 },
-  { name: 'Lak Si', population: 109770, lat: 13.8875, lng: 100.578889 },
-  { name: 'Lat Krabang', population: 163175, lat: 13.722317, lng: 100.759669 },
-  { name: 'Lat Phrao', population: 122182, lat: 13.803611, lng: 100.6075 },
-  { name: 'Min Buri', population: 137251, lat: 13.813889, lng: 100.748056 },
-  { name: 'Nong Chok', population: 157138, lat: 13.855556, lng: 100.8625 },
-  { name: 'Nong Khaem', population: 150218, lat: 13.704722, lng: 100.348889 },
-  { name: 'Pathum Wan', population: 53263, lat: 13.744942, lng: 100.5222 },
-  { name: 'Phasi Charoen', population: 129827, lat: 13.714722, lng: 100.437222 },
-  { name: 'Phaya Thai', population: 72952, lat: 13.78, lng: 100.542778 },
-  { name: 'Phra Khanong', population: 93482, lat: 13.702222, lng: 100.601667 },
-  { name: 'Phra Nakhon', population: 57876, lat: 13.764444, lng: 100.499167 },
-  { name: 'Pom Prap Sattru Phai', population: 51006, lat: 13.758056, lng: 100.513056 },
-  { name: 'Prawet', population: 160671, lat: 13.716944, lng: 100.694444 },
-  { name: 'Rat Burana', population: 86695, lat: 13.682222, lng: 100.505556 },
-  { name: 'Ratchathewi', population: 73035, lat: 13.758889, lng: 100.534444 },
-  { name: 'Sai Mai', population: 188123, lat: 13.919167, lng: 100.645833 },
-  { name: 'Samphanthawong', population: 27452, lat: 13.731389, lng: 100.514167 },
-  { name: 'Saphan Sung', population: 89825, lat: 13.77, lng: 100.684722 },
-  { name: 'Sathon', population: 84916, lat: 13.708056, lng: 100.526389 },
-  { name: 'Suan Luang', population: 115658, lat: 13.730278, lng: 100.651389 },
-  { name: 'Taling Chan', population: 106604, lat: 13.776944, lng: 100.456667 },
-  { name: 'Thawi Watthana', population: 76351, lat: 13.7878, lng: 100.3638 },
-  { name: 'Thon Buri', population: 119708, lat: 13.725, lng: 100.485833 },
-  { name: 'Thung Khru', population: 116473, lat: 13.6472, lng: 100.4958 },
-  { name: 'Wang Thonglang', population: 114768, lat: 13.7864, lng: 100.6087 },
-  { name: 'Watthana', population: 81623, lat: 13.742222, lng: 100.585833 },
-  { name: 'Yan Nawa', population: 81521, lat: 13.696944, lng: 100.543056 },
+  { name: 'Bang Bon', nameTh: 'บางบอน', population: 99168, lat: 13.6592, lng: 100.3991 },
+  { name: 'Bang Kapi', nameTh: 'บางกะปิ', population: 141412, lat: 13.765833, lng: 100.647778 },
+  { name: 'Bang Khae', nameTh: 'บางแค', population: 192481, lat: 13.696111, lng: 100.409444 },
+  { name: 'Bang Khen', nameTh: 'บางเขน', population: 184231, lat: 13.873889, lng: 100.596389 },
+  { name: 'Bang Kho Laem', nameTh: 'บางคอแหลม', population: 76224, lat: 13.693333, lng: 100.5025 },
+  { name: 'Bang Khun Thian', nameTh: 'บางขุนเทียน', population: 185595, lat: 13.660833, lng: 100.435833 },
+  { name: 'Bang Na', nameTh: 'บางนา', population: 85001, lat: 13.680081, lng: 100.5918 },
+  { name: 'Bang Phlat', nameTh: 'บางพลัด', population: 86571, lat: 13.793889, lng: 100.505 },
+  { name: 'Bang Rak', nameTh: 'บางรัก', population: 41701, lat: 13.730833, lng: 100.524167 },
+  { name: 'Bang Sue', nameTh: 'บางซื่อ', population: 117506, lat: 13.809722, lng: 100.537222 },
+  { name: 'Bangkok Noi', nameTh: 'บางกอกน้อย', population: 96745, lat: 13.770867, lng: 100.467933 },
+  { name: 'Bangkok Yai', nameTh: 'บางกอกใหญ่', population: 59797, lat: 13.722778, lng: 100.476389 },
+  { name: 'Bueng Kum', nameTh: 'บึงกุ่ม', population: 136108, lat: 13.785278, lng: 100.669167 },
+  { name: 'Chatuchak', nameTh: 'จตุจักร', population: 154500, lat: 13.828611, lng: 100.559722 },
+  { name: 'Chom Thong', nameTh: 'จอมทอง', population: 139427, lat: 13.677222, lng: 100.484722 },
+  { name: 'Din Daeng', nameTh: 'ดินแดง', population: 110780, lat: 13.769722, lng: 100.552778 },
+  { name: 'Don Mueang', nameTh: 'ดอนเมือง', population: 166047, lat: 13.913611, lng: 100.589722 },
+  { name: 'Dusit', nameTh: 'ดุสิต', population: 74584, lat: 13.776944, lng: 100.520556 },
+  { name: 'Huai Khwang', nameTh: 'ห้วยขวาง', population: 83958, lat: 13.776667, lng: 100.579444 },
+  { name: 'Khan Na Yao', nameTh: 'คันนายาว', population: 94194, lat: 13.8271, lng: 100.6743 },
+  { name: 'Khlong Sam Wa', nameTh: 'คลองสามวา', population: 214311, lat: 13.859722, lng: 100.704167 },
+  { name: 'Khlong San', nameTh: 'คลองสาน', population: 63357, lat: 13.730278, lng: 100.509722 },
+  { name: 'Khlong Toei', nameTh: 'คลองเตย', population: 89013, lat: 13.708056, lng: 100.583889 },
+  { name: 'Lak Si', nameTh: 'หลักสี่', population: 98177, lat: 13.8875, lng: 100.578889 },
+  { name: 'Lat Krabang', nameTh: 'ลาดกระบัง', population: 181253, lat: 13.722317, lng: 100.759669 },
+  { name: 'Lat Phrao', nameTh: 'ลาดพร้าว', population: 112086, lat: 13.803611, lng: 100.6075 },
+  { name: 'Min Buri', nameTh: 'มีนบุรี', population: 140752, lat: 13.813889, lng: 100.748056 },
+  { name: 'Nong Chok', nameTh: 'หนองจอก', population: 186227, lat: 13.855556, lng: 100.8625 },
+  { name: 'Nong Khaem', nameTh: 'หนองแขม', population: 154956, lat: 13.704722, lng: 100.348889 },
+  { name: 'Pathum Wan', nameTh: 'ปทุมวัน', population: 39399, lat: 13.744942, lng: 100.5222 },
+  { name: 'Phasi Charoen', nameTh: 'ภาษีเจริญ', population: 121716, lat: 13.714722, lng: 100.437222 },
+  { name: 'Phaya Thai', nameTh: 'พญาไท', population: 63025, lat: 13.78, lng: 100.542778 },
+  { name: 'Phra Khanong', nameTh: 'พระโขนง', population: 85070, lat: 13.702222, lng: 100.601667 },
+  { name: 'Phra Nakhon', nameTh: 'พระนคร', population: 39345, lat: 13.764444, lng: 100.499167 },
+  { name: 'Pom Prap Sattru Phai', nameTh: 'ป้อมปราบศัตรูพ่าย', population: 36905, lat: 13.758056, lng: 100.513056 },
+  { name: 'Prawet', nameTh: 'ประเวศ', population: 184355, lat: 13.716944, lng: 100.694444 },
+  { name: 'Rat Burana', nameTh: 'ราษฎร์บูรณะ', population: 74977, lat: 13.682222, lng: 100.505556 },
+  { name: 'Ratchathewi', nameTh: 'ราชเทวี', population: 62632, lat: 13.758889, lng: 100.534444 },
+  { name: 'Sai Mai', nameTh: 'สายไหม', population: 212575, lat: 13.919167, lng: 100.645833 },
+  { name: 'Samphanthawong', nameTh: 'สัมพันธวงศ์', population: 18845, lat: 13.731389, lng: 100.514167 },
+  { name: 'Saphan Sung', nameTh: 'สะพานสูง', population: 97659, lat: 13.77, lng: 100.684722 },
+  { name: 'Sathon', nameTh: 'สาทร', population: 70320, lat: 13.708056, lng: 100.526389 },
+  { name: 'Suan Luang', nameTh: 'สวนหลวง', population: 123405, lat: 13.730278, lng: 100.651389 },
+  { name: 'Taling Chan', nameTh: 'ตลิ่งชัน', population: 100887, lat: 13.776944, lng: 100.456667 },
+  { name: 'Thawi Watthana', nameTh: 'ทวีวัฒนา', population: 80349, lat: 13.7878, lng: 100.3638 },
+  { name: 'Thon Buri', nameTh: 'ธนบุรี', population: 97169, lat: 13.725, lng: 100.485833 },
+  { name: 'Thung Khru', nameTh: 'ทุ่งครุ', population: 124064, lat: 13.6472, lng: 100.4958 },
+  { name: 'Wang Thonglang', nameTh: 'วังทองหลาง', population: 103056, lat: 13.7864, lng: 100.6087 },
+  { name: 'Watthana', nameTh: 'วัฒนา', population: 80272, lat: 13.742222, lng: 100.585833 },
+  { name: 'Yan Nawa', nameTh: 'ยานนาวา', population: 72833, lat: 13.696944, lng: 100.543056 },
 ];
 
 (async function () {
@@ -194,6 +194,7 @@ const BANGKOK_POPULATION_DATA = [
   // Weighted by each district's registered population — see the data note
   // above BANGKOK_POPULATION_DATA for what this does and doesn't represent.
   const maxPopulation = Math.max(...BANGKOK_POPULATION_DATA.map((d) => d.population));
+  const maxPopulationDistrict = BANGKOK_POPULATION_DATA.find((d) => d.population === maxPopulation).name;
   const heatPoints = BANGKOK_POPULATION_DATA.map((d) => [d.lat, d.lng, d.population / maxPopulation]);
   const populationHeatLayer = L.heatLayer(heatPoints, {
     radius: 45,
@@ -202,20 +203,52 @@ const BANGKOK_POPULATION_DATA = [
     minOpacity: 0.15,
     gradient: { 0.2: '#f0d9f7', 0.5: '#b565d6', 0.8: '#8a2ec0', 1.0: '#5c1a80' },
   });
+
+  // The heat layer itself is a single canvas blur with no clickable regions,
+  // so a small clickable dot sits at each district's centroid on top of it,
+  // showing the real number behind that part of the blob on click.
+  const populationMarkersLayer = L.layerGroup(
+    BANGKOK_POPULATION_DATA.map((d) => {
+      const marker = L.circleMarker([d.lat, d.lng], {
+        radius: 7,
+        color: '#5c1a80',
+        weight: 1,
+        fillColor: '#5c1a80',
+        fillOpacity: 0.3,
+        opacity: 0.5,
+      });
+      const pctOfMax = Math.round((d.population / maxPopulation) * 100);
+      marker.bindPopup(
+        `<div style="min-width:190px;font-family:sans-serif">
+          <div style="font-weight:600;font-size:12px;margin-bottom:1px;color:#111">${escapeHtml(d.name)}</div>
+          <div style="font-size:10px;color:#888;margin-bottom:5px">${escapeHtml(d.nameTh || '')}</div>
+          <div style="font-size:11px;color:#555;line-height:1.7">
+            Registered population: <strong>${d.population.toLocaleString()}</strong><br/>
+            ${pctOfMax}% of Bangkok's most populous district (${escapeHtml(maxPopulationDistrict)})
+          </div>
+        </div>`,
+        { maxWidth: 240 }
+      );
+      return marker;
+    })
+  );
+
   let populationLayerActive = false;
 
   const overlayContainer = document.getElementById('overlay-controls');
   const populationBtn = document.createElement('button');
   populationBtn.className = 'overlay-btn';
   populationBtn.innerHTML = '🏙️ Population Density';
-  populationBtn.title = 'BMA registered population by district — shows relative concentration, not exact density per km²';
+  populationBtn.title = 'BMA registered population by district — click a blob for the district name and number. Shows relative concentration, not exact density per km².';
   populationBtn.addEventListener('click', () => {
     populationLayerActive = !populationLayerActive;
     if (populationLayerActive) {
       populationHeatLayer.addTo(map);
+      populationMarkersLayer.addTo(map);
       populationBtn.classList.add('active');
     } else {
       map.removeLayer(populationHeatLayer);
+      map.removeLayer(populationMarkersLayer);
       populationBtn.classList.remove('active');
     }
   });
